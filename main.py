@@ -107,7 +107,7 @@ def update_player_score(players_list, player_name, is_yellow=False, is_red=False
 import math
 
 
-def convert_player_stats_to_score(player, goals_conceeded, player_name, penalty_list):
+def convert_player_stats_to_score(player, goals_conceded, player_name, penalty_list):
     if not player.get('statistics'):
         return 0
 
@@ -119,7 +119,7 @@ def convert_player_stats_to_score(player, goals_conceeded, player_name, penalty_
     score += 1  # point for playing minutes
     if stats['minutesPlayed'] >= 60:
         score += 1  # point for playing over 60 minutes
-        score += _calculate_defensive_bonus(position, goals_conceeded)
+        score += _calculate_defensive_bonus(position, goals_conceded)
 
     # Goal-related points
     score += _calculate_goal_points(position, stats, player_name, penalty_list)
@@ -304,7 +304,7 @@ def display_match_data(match_data):
 
 
 def main():
-    match_id = 14059358
+    match_id = 14059359
     penalty_list = get_list_of_pens(match_id)
     team_dict = get_teams_return_dict(match_id)
     display_match_data(get_player_fantasy_scores_from_match_print_to_csv(match_id, team_dict, penalty_list))
