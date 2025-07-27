@@ -21,9 +21,9 @@ def get_teams_return_dict(match_id):
     else:
         match_response_json = match_response.json()
         home_team = match_response_json['event']['homeTeam']['name']
-        home_goals = match_response_json['event']['homeScore']['current']
+        home_goals = match_response_json['event']['homeScore']['normaltime']
         away_team = match_response_json['event']['awayTeam']['name']
-        away_goals = match_response_json['event']['awayScore']['current']
+        away_goals = match_response_json['event']['awayScore']['normaltime']
 
     team_dict = {
         "home": {
@@ -304,7 +304,7 @@ def display_match_data(match_data):
 
 
 def main():
-    match_id = 14059359
+    match_id = 12965096
     penalty_list = get_list_of_pens(match_id)
     team_dict = get_teams_return_dict(match_id)
     display_match_data(get_player_fantasy_scores_from_match_print_to_csv(match_id, team_dict, penalty_list))
