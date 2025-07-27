@@ -3,10 +3,7 @@ import math
 import requests
 import pandas as pd
 
-round_string = "round-of-32"
 
-player_stats_url = "https://www.sofascore.com/api/v1/event/14059358/lineups"
-matches_url = f"https://www.sofascore.com/api/v1/unique-tournament/1786/season/75270/events/round/6/slug/{round_string}"
 headers = {
     "baggage": "sentry-environment=production,sentry-release=NcET3aAMezMEwK24KeSEy,sentry-public_key=d693747a6bb242d9bb9cf7069fb57988,sentry-trace_id=e014fdd79b610d411545cadc1dbdbd27",
     "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
