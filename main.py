@@ -277,33 +277,6 @@ def display_match_data(match_data):
           .to_string(index=False, justify='left'))
 
 
-# Note: The original JavaScript code uses HEAD method, but you probably want GET to see the response content
-""" 
-player_url = f"https://www.sofascore.com/api/v1/search/Adam_Taggert"
-player_response = requests.get(player_url, headers=headers)
-player_response_json = player_response.json()
-"""
-
-"""
-match_response = requests.get(matches_url, headers=headers)
-match_response_json = match_response.json()
-for event in match_response_json['events']:
-    event_id = event['id']
-    player_stats_url = f"https://www.sofascore.com/api/v1/event/{event_id}/lineups"
-    player_stats_response = requests.get(player_stats_url, headers=headers)
-    if player_stats_response.status_code == 200:
-        player_stats_response_json = player_stats_response.json()
-        players_home = player_stats_response_json['home']['players']
-        players_away = player_stats_response_json['away']['players']
-        print("Home Lineup")
-        get_and_print_lineups(players_home)
-        print("Away Lineup")
-        get_and_print_lineups(players_away)
-    else:
-        print("No Lineups Available")
-"""
-
-
 def main():
     match_id = 14059359
     team_dict = get_teams_return_dict(match_id)
