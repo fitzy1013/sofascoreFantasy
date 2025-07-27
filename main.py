@@ -108,66 +108,121 @@ def update_player_score(players_list, player_name, is_yellow=False, is_red=False
             break
 
 
+import math
+
+
 def convert_player_stats_to_score(player, goals_conceeded):
+    if not player.get('statistics'):
+        return 0
+
+    position = player['position']
+    stats = player['statistics']
     score = 0
-    player_position = player['position']
-    player_stats = player['statistics']
-    if player_stats:
-        score += 1  # point for playing minutes
-        if player_stats['minutesPlayed'] >= 60:  # 1 point for playing over 60 minutes
-            score += 1
-            if goals_conceeded == 0:
-                if player_position == 'G':
-                    score += 5
-                elif player_position == 'D':
-                    score += 4
-                elif player_position == 'M':
-                    score += 1
-            if player_position == 'G' or player_position == 'D':
-                score -= math.floor(goals_conceeded * 0.5)
-        if 'penaltyMiss' in player_stats and player_stats['penaltyMiss'] > 0:
-            score -= player_stats['penaltyMiss'] * -2
-        if 'goals' in player_stats and player_stats['goals'] > 0:
-            if player_position == 'G':
-                score += player_stats['goals'] * 10
-            if player_position == 'D':
-                score += player_stats['goals'] * 6
-            if player_position == 'M':
-                score += player_stats['goals'] * 5
-            if player_position == 'F':
-                score += player_stats['goals'] * 4
-        if 'penaltyWon' in player_stats and player_stats['penaltyWon'] > 0:
-            score += player_stats['penaltyWon']
-        if 'goalAssist' in player_stats and player_stats['goalAssist'] > 0:
-            score += player_stats['goalAssist'] * 3
-        if 'saves' in player_stats and player_stats['saves'] > 0:
-            score += math.floor(player_stats['saves'] * 0.5)
-        if 'penaltyConceded' in player_stats and player_stats['penaltyConceded'] > 0:
-            score += player_stats['penaltyConceded'] * -1
-        if 'penaltySave' in player_stats and player_stats['penaltySave'] > 0:
-            score += player_stats['penaltySave'] * 5
-        clearances, blocks, interceptions = 0, 0, 0
-        if 'totalClearance' in player_stats and player_stats['totalClearance'] > 0:
-            clearances += player_stats['totalClearance']
-        if 'blockedScoringAttempt' in player_stats and player_stats['blockedScoringAttempt'] > 0:
-            blocks += player_stats['blockedScoringAttempt']
-        if 'interceptionWon' in player_stats and player_stats['interceptionWon'] > 0:
-            interceptions += player_stats['interceptionWon']
-        total_cbi = clearances + blocks + interceptions
-        if player_position == 'G' or player_position == 'F':
-            score += math.floor(total_cbi * 1 / 3)
-        if player_position == 'D':
-            score += math.floor(total_cbi * 1 / 5)
-        if player_position == 'M':
-            score += math.floor(total_cbi * 1 / 5)
-        if 'duelWon' in player_stats and player_stats['duelWon'] > 0:
-            score += math.floor(player_stats['duelWon'] * 1 / 5)
-        if 'onTargetScoringAttempt' in player_stats and player_stats['onTargetScoringAttempt'] > 0:
-            score += math.floor(player_stats['onTargetScoringAttempt'] * 1 / 2)
-        if 'keyPass' in player_stats and player_stats['keyPass'] > 0:
-            score += math.floor(player_stats['keyPass'] * 1 / 2)
+
+    # Base points for playing
+    score += 1  # point for playing minutes
+    if stats['minutesPlayed'] >= 60:
+        score += 1  # point for playing over 60 minutes
+        score += _calculate_defensive_bonus(position, goals_conceeded)
+
+    # Goal-related points
+    score += _calculate_goal_points(position, stats)
+
+    # Penalty-related points
+    score += _calculate_penalty_points(stats)
+
+    # Assist and passing points
+    score += _calculate_assist_and_passing_points(stats)
+
+    # Defensive actions points
+    score += _calculate_defensive_action_points(position, stats)
+
+    # Other miscellaneous points
+    score += _calculate_miscellaneous_points(stats)
 
     return score
+
+
+def _calculate_defensive_bonus(position, goals_conceeded):
+    if goals_conceeded == 0:
+        return {
+            'G': 5,
+            'D': 4,
+            'M': 1,
+        }.get(position, 0)
+
+    if position in ('G', 'D'):
+        return -math.floor(goals_conceeded * 0.5)
+    return 0
+
+
+def _calculate_goal_points(position, stats):
+    if 'goals' not in stats or stats['goals'] <= 0:
+        return 0
+
+    goal_multipliers = {
+        'G': 10,
+        'D': 6,
+        'M': 5,
+        'F': 4,
+    }
+    return stats['goals'] * goal_multipliers.get(position, 0)
+
+
+def _calculate_penalty_points(stats):
+    points = 0
+    if stats.get('penaltyMiss', 0) > 0:
+        points -= stats['penaltyMiss'] * 2
+    if stats.get('penaltyConceded', 0) > 0:
+        points -= stats['penaltyConceded']
+    if stats.get('penaltySave', 0) > 0:
+        points += stats['penaltySave'] * 5
+    if stats.get('penaltyWon', 0) > 0:
+        points += stats['penaltyWon']
+    return points
+
+
+def _calculate_assist_and_passing_points(stats):
+    points = 0
+    if stats.get('goalAssist', 0) > 0:
+        points += stats['goalAssist'] * 3
+    if stats.get('keyPass', 0) > 0:
+        points += math.floor(stats['keyPass'] * 0.5)
+    return points
+
+
+def _calculate_defensive_action_points(position, stats):
+    points = 0
+
+    # Saves (mainly for goalkeepers)
+    if stats.get('saves', 0) > 0:
+        points += math.floor(stats['saves'] * 0.5)
+
+    # Clearances, blocks, interceptions
+    clearances = stats.get('totalClearance', 0)
+    blocks = stats.get('blockedScoringAttempt', 0)
+    interceptions = stats.get('interceptionWon', 0)
+    total_cbi = clearances + blocks + interceptions
+
+    if total_cbi > 0:
+        cbi_multiplier = {
+            'G': 1 / 3,
+            'F': 1 / 3,
+            'D': 1 / 5,
+            'M': 1 / 5,
+        }.get(position, 0)
+        points += math.floor(total_cbi * cbi_multiplier)
+
+    return points
+
+
+def _calculate_miscellaneous_points(stats):
+    points = 0
+    if stats.get('duelWon', 0) > 0:
+        points += math.floor(stats['duelWon'] * 0.2)
+    if stats.get('onTargetScoringAttempt', 0) > 0:
+        points += math.floor(stats['onTargetScoringAttempt'] * 0.5)
+    return points
 
 
 def get_player_fantasy_scores_from_match_print_to_csv(match_id, teams_dict):
