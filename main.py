@@ -3,7 +3,6 @@ import math
 import requests
 import pandas as pd
 
-
 headers = {
     "baggage": "sentry-environment=production,sentry-release=NcET3aAMezMEwK24KeSEy,sentry-public_key=d693747a6bb242d9bb9cf7069fb57988,sentry-trace_id=e014fdd79b610d411545cadc1dbdbd27",
     "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
@@ -108,7 +107,7 @@ def update_player_score(players_list, player_name, is_yellow=False, is_red=False
 import math
 
 
-def convert_player_stats_to_score(player, goals_conceeded):
+def convert_player_stats_to_score(player, goals_conceeded, player_name, penalty_list):
     if not player.get('statistics'):
         return 0
 
@@ -123,7 +122,7 @@ def convert_player_stats_to_score(player, goals_conceeded):
         score += _calculate_defensive_bonus(position, goals_conceeded)
 
     # Goal-related points
-    score += _calculate_goal_points(position, stats)
+    score += _calculate_goal_points(position, stats, player_name, penalty_list)
 
     # Penalty-related points
     score += _calculate_penalty_points(stats)
@@ -153,7 +152,7 @@ def _calculate_defensive_bonus(position, goals_conceeded):
     return 0
 
 
-def _calculate_goal_points(position, stats):
+def _calculate_goal_points(position, stats, player_name, penalty_list):
     if 'goals' not in stats or stats['goals'] <= 0:
         return 0
 
@@ -163,7 +162,16 @@ def _calculate_goal_points(position, stats):
         'M': 5,
         'F': 4,
     }
-    return stats['goals'] * goal_multipliers.get(position, 0)
+
+    reg_goals = stats['goals']
+    pen_goals = 0
+
+    for pen in penalty_list:
+        if pen['player']['name'] == player_name:
+            reg_goals -= 1
+            pen_goals += 1
+
+    return reg_goals * goal_multipliers.get(position, 0) + (pen_goals * 3)
 
 
 def _calculate_penalty_points(stats):
@@ -222,7 +230,7 @@ def _calculate_miscellaneous_points(stats):
     return points
 
 
-def get_player_fantasy_scores_from_match_print_to_csv(match_id, teams_dict):
+def get_player_fantasy_scores_from_match_print_to_csv(match_id, teams_dict, penalty_list):
     home_goals, away_goals = teams_dict['home']['goals'], teams_dict['away']['goals']
     stats_url = f"https://www.sofascore.com/api/v1/event/{match_id}/lineups"
     stats_response = requests.get(stats_url, headers=headers)
@@ -233,8 +241,13 @@ def get_player_fantasy_scores_from_match_print_to_csv(match_id, teams_dict):
         team_string = ['home', 'away']
         for team in team_string:
             for player in stats_response_json[team]['players']:
-                score = convert_player_stats_to_score(player, away_goals)
+                goals = 0
+                if team == 'home':
+                    goals = away_goals
+                else:
+                    goals = home_goals
                 name = player['player']['name']
+                score = convert_player_stats_to_score(player, goals, name, penalty_list)
                 player_score_dict = {
                     "name": name,
                     "score": score
@@ -243,6 +256,22 @@ def get_player_fantasy_scores_from_match_print_to_csv(match_id, teams_dict):
             add_cards_to_players(teams_dict[team]['players'], match_id, team)
 
     return teams_dict
+
+
+def get_list_of_pens(match_id):
+    incident_url = f"https://www.sofascore.com/api/v1/event/{match_id}/incidents"
+    incident_response = requests.get(incident_url, headers=headers)
+
+    if incident_response.status_code != 200:
+        return
+
+    incident_response_json = incident_response.json()
+    penalty_list = []
+    for incident in incident_response_json['incidents']:
+        if 'incidentClass' in incident and incident['incidentClass'] == "penalty":
+            penalty_list.append(incident)
+
+    return penalty_list
 
 
 def display_match_data(match_data):
@@ -275,9 +304,10 @@ def display_match_data(match_data):
 
 
 def main():
-    match_id = 14059359
+    match_id = 14059358
+    penalty_list = get_list_of_pens(match_id)
     team_dict = get_teams_return_dict(match_id)
-    display_match_data(get_player_fantasy_scores_from_match_print_to_csv(match_id, team_dict))
+    display_match_data(get_player_fantasy_scores_from_match_print_to_csv(match_id, team_dict, penalty_list))
 
 
 if __name__ == "__main__":
