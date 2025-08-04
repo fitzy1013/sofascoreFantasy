@@ -1,4 +1,5 @@
 import math
+import sys
 
 import requests
 import pandas as pd
@@ -304,7 +305,14 @@ def display_match_data(match_data):
 
 
 def main():
-    match_id = 12965096
+    while True:
+        match_id = input("Enter an integer: ")
+        try:
+            user_input = int(match_id)
+            print(f"Great! You entered the integer: {match_id}")
+            break  # Exit the loop if input is valid
+        except ValueError:
+            print("That's not a valid integer. Please try again.")
     penalty_list = get_list_of_pens(match_id)
     team_dict = get_teams_return_dict(match_id)
     display_match_data(get_player_fantasy_scores_from_match_print_to_csv(match_id, team_dict, penalty_list))
